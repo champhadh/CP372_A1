@@ -2,7 +2,7 @@ import socket  # Used for network communication
 
 # Define server connection details
 SERVER_HOST = "127.0.0.1"  # Localhost (same machine)
-SERVER_PORT = 5000         # Port number (must match the server)
+SERVER_PORT = 5001        # Port number (must match the server)
 
 # Create a TCP client socket
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
