@@ -1,47 +1,63 @@
-import socket  # Used for network communication
+#socket is in escence part of pythons library and is used to make network connections
+import socket  
 
-# Define server connection details
-SERVER_HOST = "127.0.0.1"  # Localhost (same machine)
-SERVER_PORT = 5001        # Port number (must match the server)
+"""
+The 127.0.0.1 is a sepcial IP that basically means local host,
+what this means is that client will connect to server running
+on the local computer, 
 
-# Create a TCP client socket
-client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+Port number needs to match the one on Servey.py that
+it can connect to the server.
+"""
+HOST = "127.0.0.1"  
+PORT = 5001  
 
-try:
-    # Step 1: Connect to the server
-    client_socket.connect((SERVER_HOST, SERVER_PORT))
-    print("✅ Connected to the server.")
 
-    # Step 2: Receive assigned client name from the server
-    client_name = client_socket.recv(1024).decode()  # Server assigns name
-    print(f"🤖 Assigned client name: {client_name}")
 
-    # Step 3: Message loop (sending & receiving messages)
-    while True:
-        message = input("You: ")  # Get user input
+"""
+Here we are basically creating a new socket object,
+use .AF_INET to tell python that we are using
+iPv4 address, and lastly socket.SOCK_STREAM tells
+python that we are using TCP.
+"""
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+connect = sock.connect_ex((HOST, PORT))
 
-        # Send the message to the server
-        client_socket.sendall(message.encode())
-
-        # Handle "exit" command
-        if message.lower() == "exit":
-            print("🔌 Disconnecting from server...")
-            break  # Exit loop
-        
-        # Receive server response
-        server_response = client_socket.recv(1024).decode()
-        print(f"Server: {server_response}")
-
-except ConnectionRefusedError:
-    print("❌ Server is not running. Please start the server first.")
-    exit()
-except Exception as e:
-    print(f"⚠️ Connection error: {e}")
-
-# Step 4: Close the connection
-finally:
-    client_socket.close()
-    print("✅ Connection closed.")
+#Checking if connection to server was successful
+if connect == 0:
+    print("You are now successfuly connected to the server!!!")
     
+    #Receiving the name of the client assigned from the server
+    clients_name = sock.recv(1024).decode()
+    print(f"The following client name was assigned : {clients_name}")
+    
+    #Helper for the loop
+    running = 1
+    
+    
+    while running:
+        #Gets message from the user
+        users_message = input("Please enter a message or simply type 'exit': ")
+        
+        #Conditions to check if users message is not empty
+        if users_message:
+            sock.sendall(users_message.encode())
+            
+            #Checks if user inputed exit, uses lower so that any caps would accept
+            if users_message.lower() == "exit":
+                print("Exiting/disconnecting from the server")
+                running = 0
+            else:
+                #receiving the users response and prints it
+                users_response = sock.recv(1024).decode()
+                print(f"Response from the server: {users_response}")
+        else:
+            print("Your message, can't be empty, please try again")
+else:
+    print("Failure to connect to the server, it may not be running or does not exist!!!")  
+
+#Closes the connection socket and the loop ends
+sock.close()
+print("Connection is now closed.")      
 
 
