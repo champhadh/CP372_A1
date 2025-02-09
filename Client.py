@@ -37,7 +37,7 @@ if connect == 0:
     
     while running:
         #Gets message from the user
-        users_message = input("Please enter a message or simply type 'exit': ")
+        users_message = input("Please enter a message or simply type 'exit' or 'status' to see list of connected clients: ")
         
         #Conditions to check if users message is not empty
         if users_message:
@@ -58,6 +58,5 @@ else:
 
 #Closes the connection socket and the loop ends
 sock.close()
-print("Connection is now closed.")      
-
+print("Connection is now closed.")
 
