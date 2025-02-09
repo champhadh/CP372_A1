@@ -3,7 +3,7 @@ import threading
 
 # ========== Server Configuration ==========
 SERVER_IP = "127.0.0.1"    # Localhost
-SERVER_PORT = 5000         # Must match client port
+SERVER_PORT = 5001         # Must match client port
 MAX_CLIENTS = 3            # Maximum allowed connections
 
 # ========== Global Variables ==========
