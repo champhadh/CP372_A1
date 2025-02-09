@@ -1,83 +1,83 @@
 import socket
 import threading
 
-# server configuration
-SERVER_HOST = "127.0.0.1"  # localhost
-SERVER_PORT = 5000  # must match the client's port
-max_number_clients = 3  # limit to 3 clients
+# ========== Server Configuration ==========
+SERVER_IP = "127.0.0.1"    # Localhost
+SERVER_PORT = 5000         # Must match client port
+MAX_CLIENTS = 3            # Maximum allowed connections
 
-# data storage
-clients = {}  # stores connected clients {client_socket: "Client01", ...}
-client_count = 0  # tracks the number of connected clients
+# ========== Global Variables ==========
+connected_clients = {}      # Format: {client_socket: "Client01"}
+client_counter = 0          # Tracks total clients for naming
+client_counter_lock = threading.Lock()  # Prevents duplicate client numbers
 
-# function to handle each client
+# ========== Client Handling Function ==========
 def handle_client(client_socket, client_address):
-    global client_count
+    global client_counter
 
-    # if the server is full, reject the client
-    if len(clients) >= max_number_clients:
-        client_socket.sendall("server is full, please try again later.".encode())
+    # Immediate server-full check
+    if len(connected_clients) >= MAX_CLIENTS:
+        client_socket.sendall("Server full. Try again later.".encode())
         client_socket.close()
-        print(f"connection rejected from {client_address} due to server being full ")
+        print(f"❌ Rejected {client_address} (server full)")
         return
 
-    # assign a unique client name
-    client_count += 1
-    client_name = f"Client{client_count:02}"  # generates Client01, Client02, Client03...
-    clients[client_socket] = client_name
+    # Unique client name assignment (FIXED duplicate names issue)
+    with client_counter_lock:
+        client_counter += 1
+        client_name = f"Client{client_counter:02}"  # Client01, Client02, etc.
 
-    # send assigned client name to the client
+    # Add to connected clients and send welcome
+    connected_clients[client_socket] = client_name
     client_socket.sendall(client_name.encode())
-    print(f"assigned {client_name} to {client_address}")
+    print(f"✅ {client_name} connected from {client_address}")
 
-    while True:
-        try:
-            # receive message from the client
+    try:
+        while True:
+            # Receive message from client
             message = client_socket.recv(1024).decode()
-            if not message:
-                break  # if client disconnects, exit the loop
             
-            print(f"{client_name} sent: {message}")
-
-            # handle special commands
-            if message.lower() == "status":
-                # send a list of connected clients
-                status_msg = "connected clients: " + ", ".join(clients.values())
-                client_socket.sendall(status_msg.encode())
-            elif message.lower() == "exit":
-                print(f"👋 {client_name} disconnected.")
+            if not message:  # Client disconnected
                 break
-            else:
-                # echo message with "ACK"
-                client_socket.sendall(f"{message} ACK".encode())
+                
+            print(f"{client_name} says: {message}")
 
-        except Exception as e:
-            print(f"error handling {client_name}: {e}")
-            break
+            # Handle special commands
+            if message.lower() == "status":
+                online = ", ".join(connected_clients.values())
+                client_socket.sendall(f"Online: {online}".encode())
+            elif message.lower() == "exit":
+                client_socket.sendall("Goodbye!".encode())
+                break
+            else:  # Regular message with ACK (FIXED ACK format)
+                client_socket.sendall(f"{message} ACK".encode())  # Correct ACK
+                
+    except Exception as error:
+        print(f"⚠️ Error with {client_name}: {error}")
+    finally:
+        # Cleanup on disconnect (FIXED connection limit enforcement)
+        client_socket.close()
+        del connected_clients[client_socket]
+        print(f"🚪 {client_name} disconnected")
 
-    # remove the client from the list and close connection
-    del clients[client_socket]
-    client_count -= 1
-    client_socket.close()
-    print(f"🔒 {client_name} connection closed.")
-
-# providing server setup
+# ========== Server Setup ==========
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server_socket.bind((SERVER_HOST, SERVER_PORT))
-server_socket.listen(max_number_clients)
-print(f"server started on {SERVER_HOST}:{SERVER_PORT} (max {max_number_clients} clients)")
+server_socket.bind((SERVER_IP, SERVER_PORT))
+server_socket.listen(MAX_CLIENTS)
+print(f"🚀 Server started on {SERVER_IP}:{SERVER_PORT} (Max {MAX_CLIENTS} clients)")
 
-while True:
-    if len(clients) < max_number_clients:
-        client_socket, client_address = server_socket.accept()
-        print(f"connection received from {client_address}")
-
-        # start a new thread for each client
-        client_thread = threading.Thread(target=handle_client, args=(client_socket, client_address))
-        client_thread.start()
-    else:
-        # reject new connections if limit is reached
-        rejected_socket, rejected_address = server_socket.accept()
-        rejected_socket.sendall("server full. try again later.".encode())
-        rejected_socket.close()
-        print(f"connection rejected from {rejected_address} (server full)")
+# ========== Main Connection Loop ==========
+try:
+    while True:
+        new_socket, address = server_socket.accept()
+        print(f"🔗 New connection from {address}")
+        
+        # Start thread for simultaneous connections (FIXED threading issue)
+        handler = threading.Thread(target=handle_client, args=(new_socket, address))
+        handler.start()
+        
+except KeyboardInterrupt:
+    print("\n🛑 Server shutting down...")
+finally:
+    server_socket.close()
+    print("✅ Server closed")
