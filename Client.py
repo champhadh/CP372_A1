@@ -1,3 +1,7 @@
+#Arren Haroutunian - 210603250
+#Hady Wehbe - 210457330
+
+
 #socket is in escence part of pythons library and is used to make network connections
 import socket  
 

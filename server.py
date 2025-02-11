@@ -1,3 +1,7 @@
+#Arren Haroutunian - 210603250
+#Hady Wehbe - 210457330
+
+
 
 import socket
 import threading
@@ -13,7 +17,7 @@ client_cap = 3
 # clients_connected stores socket-to-name mappings. the client_count gens. seq. names like Client01, Client02, et...
 # and running is a flag to start or stop the server
 clients_connected = {}
-client_count = 0
+available_client_numbers = set(range(1, client_cap + 1)) #ensures not keep client count right when client disconnects
 client_count_lock = threading.Lock()
 running = True  
 
@@ -33,8 +37,10 @@ def client_handling(client_socket, client_address):
     # client_count_lock, prevents duplicate numbering in multi-threaded code. 
     # the :02 format pads numbers with leading zero, e.g. Client03
     with client_count_lock:
-        client_count += 1
-        client_name = f"client{client_count:02}"
+        client_num = min(available_client_numbers)
+        available_client_numbers.remove(client_num)
+        client_name = f"client{client_num:02}"
+
 
     # register client and send name, which adds the client to the active list and sends their name
     # the client receives its name immediately after connecting 
@@ -69,7 +75,11 @@ def client_handling(client_socket, client_address):
     # the following is a cleanup on disconnect, which releases resources when a client disconnects 
     # the client's socket is closed, the client is removed from the active lsit.
     client_socket.close() 
-    del clients_connected[client_socket]
+    
+    # when a client disconnects, their number is added back to ava_client_number allowing it to be reassigned to a new client
+    with client_count_lock:
+        del clients_connected[client_socket]
+        available_client_numbers.add(int(client_name[-2:]))
     print(f"{client_name} disconnected") 
 
 # the server setup, which is prepares the server to accept connections (initialize the server)
